@@ -1,0 +1,46 @@
+---
+- name: Include postgres 9.5 params
+  include_vars:
+    file: vars/postgres95.yml
+    name: pg_vars
+
+# to be sure no connections left
+- name: restart postgres service
+  service:
+    name: "{{ pg_vars.service_name }}"
+    state: restarted
+
+- name: rename engine db
+  become: yes
+  become_user: postgres
+  shell: "scl enable rh-postgresql95 'psql -c \"alter database {{ old_name }} rename to {{ new_name }}\"'"
+  tags:
+    - skip_ansible_lint
+  when: ovirt_engine_db_rename
+
+- name: update engine name in pg_hba.conf
+  replace:
+    path: "{{ pg_vars.data_dir }}/pg_hba.conf"
+    regexp: '^([a-z]+\s+){{ old_name }}(\s+)'
+    replace: '\g<1>{{ new_name }}\g<2>'
+  when: ovirt_engine_db_rename
+
+- name: rename dwh db
+  become: yes
+  become_user: postgres
+  shell: "scl enable rh-postgresql95 'psql -c \"alter database {{ old_dwh_name }} rename to {{ new_dwh_name }}\"'"
+  tags:
+    - skip_ansible_lint
+  when: ovirt_engine_db_rename_dwh
+
+- name: update dwh name in pg_hba.conf
+  replace:
+    path: "{{ pg_vars.data_dir }}/pg_hba.conf"
+    regexp: '^([a-z]+\s+){{ old_dwh_name }}(\s+)'
+    replace: '\g<1>{{ new_dwh_name }}\g<2>'
+  when: ovirt_engine_db_rename_dwh
+
+- name: restart postgres service
+  service:
+    name: "{{ pg_vars.service_name }}"
+    state: restarted

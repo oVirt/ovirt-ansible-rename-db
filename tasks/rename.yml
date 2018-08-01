@@ -1,0 +1,35 @@
+---
+- name: stop necessary service
+  service:
+    name: "{{ item }}"
+    state: stopped
+  with_items:
+    - ovirt-engine-dwhd
+    - ovirt-engine
+    - ovirt-fence-kdump-listener
+
+# restart httpd so there are no left connections
+- name: restart httpd
+  service:
+    name: httpd
+    state: restarted
+
+- name: rename engine/dwh db
+  include_tasks: postgres-rename.yml
+  when: ovirt_engine_version < "4.2"
+
+- name: rename engine/dwh db for postgres 9.5
+  include_tasks: postgres95-rename.yml
+  when: ovirt_engine_version >= "4.2"
+
+- name: set new names in engine config
+  include_tasks: set-engine.yml
+
+- name: start engine and dwh service
+  service:
+    name: "{{ item }}"
+    state: restarted
+  with_items:
+    - ovirt-engine
+    - ovirt-engine-dwhd
+    - ovirt-fence-kdump-listener

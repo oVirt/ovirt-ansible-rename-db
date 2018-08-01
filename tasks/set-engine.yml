@@ -1,0 +1,41 @@
+---
+# change in engine configuration localhost to remote server
+- name: update engine db name
+  replace:
+    path: "{{ item }}"
+    regexp: 'ENGINE_DB_DATABASE=".*"'
+    replace: 'ENGINE_DB_DATABASE="{{ new_name }}"'
+  with_items: "{{ ovirt_engine_etc_conf_files }}"
+  when: ovirt_engine_db_rename
+
+- name: update engine jdbc url
+  replace:
+    path: "{{ item }}"
+    regexp: "(ENGINE_DB_URL=.*)/{{ old_name }}[?]"
+    replace: '\g<1>/{{ new_name }}?'
+  with_items: "{{ ovirt_engine_etc_conf_files }}"
+  when: ovirt_engine_db_rename
+
+- name: update aaa jdbc url
+  replace:
+    path: "{{ item }}"
+    regexp: "(jdbcurl=.*)/{{ old_name }}[?]"
+    replace: '\g<1>/{{ new_name }}?'
+  with_items: "{{ ovirt_engine_etc_conf_files_aaa }}"
+  when: ovirt_engine_db_rename
+
+- name: update dwh db name
+  replace:
+    path: "{{ item }}"
+    regexp: 'DWH_DB_DATABASE=".*"'
+    replace: 'DWH_DB_DATABASE="{{ new_dwh_name }}"'
+  with_items: "{{ ovirt_engine_etc_conf_files }}"
+  when: ovirt_engine_db_rename_dwh
+
+- name: update dwh jdbc url
+  replace:
+    path: "{{ item }}"
+    regexp: "(DWH_DB_URL=.*)/{{ old_dwh_name }}[?]"
+    replace: '\g<1>/{{ new_dwh_name }}?'
+  with_items: "{{ ovirt_engine_etc_conf_files }}"
+  when: ovirt_engine_db_rename_dwh

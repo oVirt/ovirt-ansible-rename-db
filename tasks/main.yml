@@ -1,0 +1,73 @@
+---
+- name: set variables
+  set_fact:
+    ovirt_engine_db_rename: "{{ True if ovirt_engine_db_name is defined else False }}"
+    ovirt_engine_db_rename_dwh: "{{ True if ovirt_engine_db_name_dwh is defined else False }}"
+
+- name: get engine/dwh db settings
+  include_role:
+    name: ansible-role-ovirt-dump-db
+    tasks_from: get-db-facts
+  vars:
+    ovirt_engine_db_dump: "{{ ovirt_engine_db_rename }}"
+    ovirt_engine_db_dump_dwh: "{{ ovirt_engine_db_rename_dwh }}"
+  when: ovirt_engine_db_rename
+
+- name: set old/new names variables
+  set_fact:
+    old_name: "{{ ovirt_engine_db_dump_engine_db['ENGINE_DB_DATABASE'] }}"
+    new_name: "{{ ovirt_engine_db_name }}"
+  when: ovirt_engine_db_rename
+
+- name: check new name
+  fail: 
+    msg: "Database {{ new_name }} already used in engine"
+  when: 
+    - ovirt_engine_db_rename
+    - old_name == new_name
+
+- name: set old/new dwh names variables
+  set_fact:
+    old_dwh_name: "{{ ovirt_engine_db_dump_dwh_db['DWH_DB_DATABASE'] }}"
+    new_dwh_name: "{{ ovirt_engine_db_name_dwh }}"
+  when: ovirt_engine_db_rename_dwh
+
+- name: check new dwh name
+  fail: 
+    msg: "Database {{ new_dwh_name }} already used in engine"
+  when: 
+    - ovirt_engine_db_rename_dwh
+    - old_dwh_name == new_dwh_name
+
+- name: rename db
+  include_tasks: rename.yml
+
+- name: check if ovirt-engine running (health page)
+  uri:
+    url: "http://{{ ansible_fqdn }}/ovirt-engine/services/health"
+    status_code: 200
+  register: ovirt_engine_status
+  retries: 2
+  delay: 5
+  until: ovirt_engine_status is success
+  ignore_errors: True
+
+# engine is not running reset changes
+- name: set old/new names variables
+  set_fact:
+    old_name: "{{ ovirt_engine_db_name }}"
+    new_name: "{{ ovirt_engine_db_dump_engine_db['ENGINE_DB_DATABASE'] }}"
+  when: ovirt_engine_status is failed
+
+- name: set old/new dwh names variables
+  set_fact:
+    old_dwh_name: "{{ ovirt_engine_db_name_dwh }}"
+    new_dwh_name: "{{ ovirt_engine_db_dump_dwh_db['DWH_DB_DATABASE'] }}"
+  when: 
+    - ovirt_engine_db_rename_dwh
+    - ovirt_engine_status is failed
+
+- name: rename back
+  include_tasks: rename.yml
+  when: 
+    - ovirt_engine_status is failed

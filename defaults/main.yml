@@ -1,0 +1,8 @@
+---
+ovirt_engine_version: "4.2"
+ovirt_engine_etc_conf_files: 
+  - /etc/ovirt-engine/engine.conf.d/10-setup-database.conf 
+  - /etc/ovirt-engine/engine.conf.d/10-setup-dwh-database.conf
+  - /etc/ovirt-engine-dwh/ovirt-engine-dwhd.conf.d/10-setup-database.conf
+ovirt_engine_etc_conf_files_aaa: 
+  - /etc/ovirt-engine/aaa/internal.properties
