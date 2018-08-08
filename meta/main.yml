@@ -1,6 +1,7 @@
 ---
 galaxy_info:
   author: "Lucie Leistnerova"
+  role_name: "rename-db"
   description: "Role to change name of oVirt databases"
   company: "Red Hat, Inc."
   license: "GPLv3"
